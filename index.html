@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RouteWise | Bus Booking Analytics</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg:#f7f7fb; --panel:#ffffff; --ink:#39445b; --muted:#8992a7;
+  --lav:#e9e3fb; --pink:#f9e2eb; --mint:#ddf2e9; --blue:#dfeefa;
+  --peach:#fbe9d8; --line:#edf0f5; --purple:#9a86d8; --teal:#73b9a4;
+  --rose:#d98ca8; --gold:#d6a76d; --shadow:0 8px 28px rgba(68,75,110,.07);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+.app{display:flex;min-height:100vh}
+.sidebar{width:245px;background:#fff;padding:28px 18px;border-right:1px solid var(--line);position:fixed;inset:0 auto 0 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin:0 8px 34px}
+.brand-mark{width:38px;height:38px;border-radius:13px;background:var(--lav);display:grid;place-items:center;font-size:20px}
+.nav-label{font-size:10px;color:#a4aabd;letter-spacing:1.5px;font-weight:800;margin:22px 12px 10px}
+.nav a{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;text-decoration:none;color:#7c859a;font-size:13px;margin:4px 0}
+.nav a.active,.nav a:hover{background:#f0ecfb;color:#7160b4;font-weight:700}
+.side-note{position:absolute;bottom:24px;left:18px;right:18px;padding:16px;border-radius:16px;background:#f5f1fc;font-size:12px;color:#77718d;line-height:1.5}
+main{margin-left:245px;width:calc(100% - 245px);padding:30px 34px 50px;max-width:1600px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:26px}
+.eyebrow{color:#9b91bd;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
+h1{font-size:27px;margin:5px 0 4px;letter-spacing:-.6px}
+.subtitle{font-size:13px;color:var(--muted)}
+.actions{display:flex;gap:10px;align-items:center}
+select,button{font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px 13px;background:#fff;color:var(--ink);font-size:12px}
+button{cursor:pointer;background:#8878c5;color:#fff;border:0;font-weight:700}
+button.secondary{background:#fff;color:#77718d;border:1px solid var(--line)}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.kpi-top{display:flex;justify-content:space-between;align-items:center}
+.kpi-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px}
+.kpi-label{font-size:12px;color:var(--muted);font-weight:600}
+.kpi-value{font-size:27px;font-weight:800;margin:12px 0 4px;letter-spacing:-.6px}
+.kpi-foot{font-size:11px;color:#9aa2b3}
+.two{grid-template-columns:1.45fr 1fr;margin-bottom:18px}
+.three{grid-template-columns:1fr 1fr 1fr;margin-bottom:18px}
+.section-title{font-size:15px;font-weight:800;margin:0 0 4px}
+.section-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+.chart-wrap{height:245px;position:relative}
+.chart-wrap.small{height:210px}
+.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.insight{padding:14px;border-radius:13px;background:#f8f5fd;border:1px solid #f0ebfa;font-size:12px;line-height:1.5}
+.insight strong{display:block;margin-bottom:5px;color:#7160b4}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:#9aa2b3;font-size:10px;letter-spacing:.7px;text-transform:uppercase;padding:11px 8px;border-bottom:1px solid var(--line)}
+td{padding:12px 8px;border-bottom:1px solid #f3f4f7;white-space:nowrap}
+.pill{display:inline-block;padding:5px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.confirmed{background:#e4f5ec;color:#4d9b78}.cancelled{background:#fae8ee;color:#bd718d}.pending{background:#fff2df;color:#b78a4f}
+.footer{text-align:center;color:#a3a9b7;font-size:10px;margin-top:25px}
+@media(max-width:1100px){.sidebar{width:205px}.app main{margin-left:205px;width:calc(100% - 205px);padding:25px}.kpis{grid-template-columns:repeat(2,1fr)}.three{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.sidebar{position:static;width:100%;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px}.app{display:block}.brand{margin:0 5px 12px}.nav{display:flex;overflow:auto}.nav-label,.side-note{display:none}.nav a{white-space:nowrap;padding:9px}.app main{margin:0;width:100%;padding:20px 14px}.topbar{align-items:flex-start;flex-direction:column}.actions{width:100%;flex-wrap:wrap}.two,.three,.insights{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi-value{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark">🚌</div> RouteWise</div>
+  <div class="nav-label">WORKSPACE</div>
+  <nav class="nav">
+    <a class="active" href="#overview">▦ Overview</a>
+    <a href="#tickets">▤ Ticket analytics</a>
+    <a href="#revenue">◷ Revenue</a>
+    <a href="#passengers">♙ Passengers</a>
+    <a href="#routes">⇄ Routes</a>
+    <a href="#time">◷ Time analysis</a>
+    <a href="#cancellations">↗ Cancellations</a>
+    <a href="#insights">✧ Intelligent insights</a>
+  </nav>
+  <div class="side-note"><b>Demo dashboard</b><br>Using sample booking records. Replace these with verified project data before presenting real-world results.</div>
+</aside>
+<main>
+  <header class="topbar" id="overview">
+    <div><div class="eyebrow">Analytics workspace</div><h1>Bus Booking Overview</h1><div class="subtitle">Understand bookings, revenue, passenger behaviour and demand.</div></div>
+    <div class="actions">
+      <select id="routeFilter" aria-label="Filter by route"><option value="all">All routes</option></select>
+      <select id="statusFilter" aria-label="Filter by status"><option value="all">All statuses</option><option>Confirmed</option><option>Cancelled</option><option>Pending</option></select>
+      <button class="secondary" id="resetBtn">Reset filters</button>
+      <button id="exportBtn">Export CSV ↓</button>
+    </div>
+  </header>
+
+  <section class="grid kpis" id="tickets">
+    <div class="card"><div class="kpi-top"><span class="kpi-label">Total tickets</span><span class="kpi-icon" style="background:var(--lav)">🎫</span></div><div class="kpi-value" id="totalTickets">—</div><div class="kpi-foot">All booking records in current view</div></div>
+    <div class="card"><div class="kpi-top"><span class="kpi-label">Confirmed tickets</span><span class="kpi-icon" style="background:var(--mint)">✓</span></div><div class="kpi-value" id="confirmedTickets">—</div><div class="kpi-foot">Successfully confirmed</div></div>
+    <div class="card"><div class="kpi-top"><span class="kpi-label">Cancelled tickets</span><span class="kpi-icon" style="background:var(--pink)">↗</span></div><div class="kpi-value" id="cancelledTickets">—</div><div class="kpi-foot" id="cancelRate">Cancellation rate: —</div></div>
+    <div class="card"><div class="kpi-top"><span class="kpi-label">Net revenue</span><span class="kpi-icon" style="background:var(--peach)">₹</span></div><div class="kpi-value" id="revenue">—</div><div class="kpi-foot">Confirmed fares only; refunds not modelled</div></div>
+  </section>
+
+  <section class="grid two" id="revenue">
+    <div class="card"><h2 class="section-title">Revenue over time</h2><div class="section-sub">Daily revenue from confirmed bookings</div><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></div>
+    <div class="card"><h2 class="section-title">Booking status</h2><div class="section-sub">Confirmed, cancelled and pending tickets</div><div class="chart-wrap"><canvas id="statusChart"></canvas></div></div>
+  </section>
+
+  <section class="grid three" id="passengers">
+    <div class="card"><h2 class="section-title">Passenger analytics</h2><div class="section-sub">Passengers by booking date</div><div class="chart-wrap small"><canvas id="passengerChart"></canvas></div></div>
+    <div class="card" id="routes"><h2 class="section-title">Route popularity</h2><div class="section-sub">Tickets booked by route</div><div class="chart-wrap small"><canvas id="routeChart"></canvas></div></div>
+    <div class="card" id="time"><h2 class="section-title">Peak booking hours</h2><div class="section-sub">When customers make bookings</div><div class="chart-wrap small"><canvas id="hourChart"></canvas></div></div>
+  </section>
+
+  <section class="grid two" id="cancellations">
+    <div class="card"><h2 class="section-title">Cancellation analysis</h2><div class="section-sub">Cancelled bookings by travel date</div><div class="chart-wrap"><canvas id="cancelChart"></canvas></div></div>
+    <div class="card"><h2 class="section-title">Travel timing</h2><div class="section-sub">Passenger bookings by departure slot</div><div class="chart-wrap"><canvas id="travelChart"></canvas></div></div>
+  </section>
+
+  <section class="card" id="insights" style="margin-bottom:18px">
+    <h2 class="section-title">✧ Intelligent insights</h2><div class="section-sub">Rule-based observations and a simple trend estimate from the sample data.</div>
+    <div class="insights" id="insightCards"></div>
+    <div style="height:18px"></div>
+    <h2 class="section-title">Future ticket demand estimate</h2><div class="section-sub">Illustrative 7-day linear trend estimate. This is a demo forecast, not a validated production ML model.</div>
+    <div class="chart-wrap"><canvas id="forecastChart"></canvas></div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Recent booking records</h2><div class="section-sub">Sample records used to power the dashboard</div>
+    <div class="table-wrap"><table><thead><tr><th>Booking ID</th><th>Passenger</th><th>Route</th><th>Booking time</th><th>Travel date</th><th>Seats</th><th>Fare</th><th>Status</th></tr></thead><tbody id="bookingRows"></tbody></table></div>
+  </section>
+  <div class="footer">RouteWise · Solvathon project starter · Sample data only</div>
+</main>
+</div>
+<script>
+// SAMPLE DATA: Replace these records with real or approved test data.
+// Each record represents one booking; seats stores the number of passengers.
+const bookings = [
+{id:1001,name:"Aarav",route:"Bengaluru–Mysuru",booked:"2026-11-01T08:10:00",travel:"2026-11-03",seats:2,fare:900,status:"Confirmed",departure:"Morning"},
+{id:1002,name:"Diya",route:"Bengaluru–Chennai",booked:"2026-11-01T10:35:00",travel:"2026-11-04",seats:1,fare:850,status:"Confirmed",departure:"Evening"},
+{id:1003,name:"Ishaan",route:"Bengaluru–Hyderabad",booked:"2026-11-01T19:20:00",travel:"2026-11-06",seats:1,fare:1100,status:"Cancelled",departure:"Night"},
+{id:1004,name:"Meera",route:"Bengaluru–Mysuru",booked:"2026-11-02T07:45:00",travel:"2026-11-05",seats:3,fare:1350,status:"Confirmed",departure:"Morning"},
+{id:1005,name:"Kabir",route:"Chennai–Bengaluru",booked:"2026-11-02T13:05:00",travel:"2026-11-07",seats:2,fare:1500,status:"Pending",departure:"Night"},
+{id:1006,name:"Anaya",route:"Bengaluru–Pune",booked:"2026-11-02T18:15:00",travel:"2026-11-08",seats:1,fare:1400,status:"Confirmed",departure:"Evening"},
+{id:1007,name:"Vihaan",route:"Bengaluru–Mysuru",booked:"2026-11-03T09:30:00",travel:"2026-11-06",seats:2,fare:900,status:"Cancelled",departure:"Morning"},
+{id:1008,name:"Sara",route:"Bengaluru–Chennai",booked:"2026-11-03T16:40:00",travel:"2026-11-08",seats:1,fare:850,status:"Confirmed",departure:"Evening"},
+{id:1009,name:"Reyansh",route:"Bengaluru–Hyderabad",booked:"2026-11-04T20:10:00",travel:"2026-11-09",seats:2,fare:2200,status:"Confirmed",departure:"Night"},
+{id:1010,name:"Tara",route:"Bengaluru–Mysuru",booked:"2026-11-04T11:25:00",travel:"2026-11-09",seats:1,fare:450,status:"Confirmed",departure:"Afternoon"},
+{id:1011,name:"Arjun",route:"Bengaluru–Pune",booked:"2026-11-05T08:55:00",travel:"2026-11-10",seats:2,fare:2800,status:"Pending",departure:"Night"},
+{id:1012,name:"Myra",route:"Bengaluru–Chennai",booked:"2026-11-05T14:15:00",travel:"2026-11-11",seats:2,fare:1700,status:"Confirmed",departure:"Morning"},
+{id:1013,name:"Advik",route:"Bengaluru–Mysuru",booked:"2026-11-06T17:05:00",travel:"2026-11-12",seats:4,fare:1800,status:"Confirmed",departure:"Evening"},
+{id:1014,name:"Kiara",route:"Chennai–Bengaluru",booked:"2026-11-06T21:35:00",travel:"2026-11-12",seats:1,fare:750,status:"Cancelled",departure:"Night"},
+{id:1015,name:"Rohan",route:"Bengaluru–Hyderabad",booked:"2026-11-07T10:05:00",travel:"2026-11-13",seats:2,fare:2200,status:"Confirmed",departure:"Night"},
+{id:1016,name:"Aisha",route:"Bengaluru–Mysuru",booked:"2026-11-07T12:45:00",travel:"2026-11-14",seats:1,fare:450,status:"Confirmed",departure:"Afternoon"},
+{id:1017,name:"Neil",route:"Bengaluru–Chennai",booked:"2026-11-08T18:50:00",travel:"2026-11-15",seats:3,fare:2550,status:"Confirmed",departure:"Morning"},
+{id:1018,name:"Zoya",route:"Bengaluru–Pune",booked:"2026-11-08T22:10:00",travel:"2026-11-16",seats:1,fare:1400,status:"Cancelled",departure:"Night"},
+{id:1019,name:"Dev",route:"Bengaluru–Mysuru",booked:"2026-11-09T08:20:00",travel:"2026-11-16",seats:2,fare:900,status:"Confirmed",departure:"Morning"},
+{id:1020,name:"Ira",route:"Bengaluru–Chennai",booked:"2026-11-09T15:30:00",travel:"2026-11-17",seats:1,fare:850,status:"Pending",departure:"Evening"},
+{id:1021,name:"Yuvan",route:"Bengaluru–Hyderabad",booked:"2026-11-09T19:40:00",travel:"2026-11-18",seats:2,fare:2200,status:"Confirmed",departure:"Night"}
+];
+
+const palette = ["#a99add","#83c6b0","#e4a7bd","#edc58f","#91b8df","#c3b5e8"];
+const money = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const dateLabel = s => new Date(s+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+let charts = {};
+function makeChart(id,type,labels,datasets,extra={}) {
+  if(charts[id]) charts[id].destroy();
+  const ctx=document.getElementById(id);
+  charts[id]=new Chart(ctx,{type,data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:extra.legend??false,position:"bottom",labels:{usePointStyle:true,boxWidth:8,font:{size:10}}}},
+    scales:type==="doughnut"?{}:{x:{grid:{display:false},ticks:{color:"#9299aa",font:{size:10}}},y:{beginAtZero:true,grid:{color:"#f0f1f5"},ticks:{color:"#9299aa",font:{size:10}}}},
+    ...extra.options
+  }});
+}
+function getFiltered(){
+ const route=document.getElementById("routeFilter").value, status=document.getElementById("statusFilter").value;
+ return bookings.filter(b=>(route==="all"||b.route===route)&&(status==="all"||b.status===status));
+}
+function groupSum(data,key,valueFn){
+ const out={}; data.forEach(b=>{const k=key(b);out[k]=(out[k]||0)+valueFn(b)}); return out;
+}
+function render(){
+ const data=getFiltered(), confirmed=data.filter(b=>b.status==="Confirmed"), cancelled=data.filter(b=>b.status==="Cancelled");
+ const passengers=data.reduce((s,b)=>s+b.seats,0), rev=confirmed.reduce((s,b)=>s+b.fare,0);
+ document.getElementById("totalTickets").textContent=data.length;
+ document.getElementById("confirmedTickets").textContent=confirmed.length;
+ document.getElementById("cancelledTickets").textContent=cancelled.length;
+ document.getElementById("cancelRate").textContent="Cancellation rate: "+(data.length?(cancelled.length/data.length*100).toFixed(1):"0.0")+"%";
+ document.getElementById("revenue").textContent=money(rev);
+
+ const daily=groupSum(confirmed,b=>b.booked.slice(0,10),b=>b.fare);
+ const days=Object.keys(daily).sort();
+ makeChart("revenueChart","line",days.map(dateLabel),[{label:"Revenue",data:days.map(d=>daily[d]),borderColor:"#9a86d8",backgroundColor:"rgba(154,134,216,.15)",fill:true,tension:.35,pointRadius:3}]);
+ makeChart("statusChart","doughnut",["Confirmed","Cancelled","Pending"],[{data:[confirmed.length,cancelled.length,data.filter(b=>b.status==="Pending").length],backgroundColor:["#83c6b0","#e4a7bd","#edc58f"],borderWidth:0}],{legend:true});
+ const pax=groupSum(data,b=>b.booked.slice(0,10),b=>b.seats), paxDays=Object.keys(pax).sort();
+ makeChart("passengerChart","bar",paxDays.map(dateLabel),[{data:paxDays.map(d=>pax[d]),backgroundColor:"#91b8df",borderRadius:6}]);
+ const routeCounts=groupSum(data,b=>b.route,b=>1), routeEntries=Object.entries(routeCounts).sort((a,b)=>b[1]-a[1]);
+ makeChart("routeChart","bar",routeEntries.map(x=>x[0].replace("Bengaluru–","")),[{data:routeEntries.map(x=>x[1]),backgroundColor:palette,borderRadius:5}],{options:{indexAxis:"y",scales:{x:{beginAtZero:true,grid:{color:"#f0f1f5"}},y:{grid:{display:false}}}}});
+ const hourCounts=Array(24).fill(0); data.forEach(b=>hourCounts[Number(b.booked.slice(11,13))]++);
+ makeChart("hourChart","bar",hourCounts.map((_,i)=>String(i).padStart(2,"0")+":00"),[{data:hourCounts,backgroundColor:"#c3b5e8",borderRadius:4}]);
+ const cancelByDay=groupSum(cancelled,b=>b.travel,b=>1), cd=Object.keys(cancelByDay).sort();
+ makeChart("cancelChart","line",cd.map(dateLabel),[{data:cd.map(d=>cancelByDay[d]),borderColor:"#d98ca8",backgroundColor:"rgba(217,140,168,.14)",fill:true,tension:.3}]);
+ const travel=groupSum(data,b=>b.departure,b=>b.seats), slots=["Morning","Afternoon","Evening","Night"];
+ makeChart("travelChart","doughnut",slots,[{data:slots.map(s=>travel[s]||0),backgroundColor:["#91b8df","#edc58f","#83c6b0","#c3b5e8"],borderWidth:0}],{legend:true});
+
+ const top=routeEntries[0], bottom=routeEntries[routeEntries.length-1];
+ const busiestHour=hourCounts.indexOf(Math.max(...hourCounts));
+ const cancelPct=data.length?cancelled.length/data.length*100:0;
+ const insightHTML=[
+  `<div class="insight"><strong>Most booked route</strong>${top?top[0]+" has "+top[1]+" bookings in this view.":"No route data available."}</div>`,
+  `<div class="insight"><strong>Lowest booking route</strong>${bottom?bottom[0]+" has "+bottom[1]+" bookings in this view.":"No route data available."}</div>`,
+  `<div class="insight"><strong>Peak booking hour</strong>${Math.max(...hourCounts)>0?String(busiestHour).padStart(2,"0")+":00 is the busiest booking hour.":"No booking-time data available."}</div>`,
+  `<div class="insight"><strong>Cancellation watch</strong>${cancelPct.toFixed(1)}% of records in this view are cancelled. Review route and travel-date patterns.</div>`,
+  `<div class="insight"><strong>Passenger volume</strong>${passengers} passenger seats are represented in the filtered booking records.</div>`,
+  `<div class="insight"><strong>Revenue note</strong>${money(rev)} from confirmed fares only. Pending and cancelled tickets are excluded.</div>`
+ ];
+ document.getElementById("insightCards").innerHTML=insightHTML.join("");
+ // Simple least-squares trend over daily confirmed ticket counts, projected for seven days.
+ const countByDay=groupSum(confirmed,b=>b.booked.slice(0,10),b=>1), dates=Object.keys(countByDay).sort();
+ const vals=dates.map(d=>countByDay[d]); let slope=0,intercept=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+ if(vals.length>1){const mx=(vals.length-1)/2,my=intercept;let num=0,den=0;vals.forEach((v,i)=>{num+=(i-mx)*(v-my);den+=(i-mx)**2});slope=den?num/den:0;intercept=my-slope*mx;}
+ const forecast=Array.from({length:7},(_,i)=>Math.max(0,Math.round(intercept+slope*(vals.length+i))));
+ const futureLabels=Array.from({length:7},(_,i)=>"Day "+(i+1));
+ makeChart("forecastChart","line",dates.map(dateLabel).concat(futureLabels),[
+  {label:"Historical confirmed tickets",data:vals.concat(Array(7).fill(null)),borderColor:"#83b9a8",backgroundColor:"rgba(131,185,168,.12)",fill:true,tension:.3},
+  {label:"Illustrative demand estimate",data:Array(Math.max(0,vals.length-1)).fill(null).concat(vals.length?[vals[vals.length-1]]:[]).concat(forecast),borderColor:"#9a86d8",borderDash:[5,5],tension:.3,pointRadius:3}
+ ],{legend:true});
+ document.getElementById("bookingRows").innerHTML=data.slice().sort((a,b)=>b.id-a.id).map(b=>`<tr><td>#${b.id}</td><td>${b.name}</td><td>${b.route}</td><td>${new Date(b.booked).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</td><td>${dateLabel(b.travel)}</td><td>${b.seats}</td><td>${money(b.fare)}</td><td><span class="pill ${b.status.toLowerCase()}">${b.status}</span></td></tr>`).join("");
+}
+const routeSelect=document.getElementById("routeFilter");
+[...new Set(bookings.map(b=>b.route))].sort().forEach(r=>{const o=document.createElement("option");o.value=r;o.textContent=r;routeSelect.appendChild(o)});
+routeSelect.addEventListener("change",render);
+document.getElementById("statusFilter").addEventListener("change",render);
+document.getElementById("resetBtn").addEventListener("click",()=>{routeSelect.value="all";document.getElementById("statusFilter").value="all";render()});
+document.getElementById("exportBtn").addEventListener("click",()=>{
+ const rows=[["Booking ID","Passenger","Route","Booking time","Travel date","Seats","Fare INR","Status"],...getFiltered().map(b=>[b.id,b.name,b.route,b.booked,b.travel,b.seats,b.fare,b.status])];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(",")).join("\n");
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="routewise-bookings.csv";a.click();URL.revokeObjectURL(url);
+});
+render();
+</script>
+</body>
+</html>
